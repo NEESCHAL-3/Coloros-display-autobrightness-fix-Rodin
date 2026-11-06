@@ -40,6 +40,8 @@ coloros-display-autobrightness-fix/
 │   ├── build.sh                               # Standalone NDK compiler script
 │   └── src/
 │       └── sensors_compat.c                   # C source for ALS interception & leakage subtraction
+├── props/
+│   └── display_brightness.prop                # Essential display remap & sensor report properties
 ├── scripts/
 │   ├── bake_unpacked_images.sh                # Bake fixes directly into unpacked partition images
 │   ├── get_physical_display_id.sh             # Query 64-bit physical display ID via ADB

@@ -82,7 +82,7 @@ chmod 0644 "$TARGET_COM"
 echo "  -> Installed: $TARGET_COM"
 
 # 3. Install Sensor Shim into vendor/lib64/hw/
-echo "[3/4] Installing Sensor Compatibility Shim into vendor/lib64/hw/..."
+echo "[3/5] Installing Sensor Compatibility Shim into vendor/lib64/hw/..."
 TARGET_HW_DIR="$VENDOR_DIR/lib64/hw"
 mkdir -p "$TARGET_HW_DIR"
 
@@ -107,8 +107,28 @@ else
     echo "        Run 'cd sensor_shim && ./build.sh' if you need the sensor HAL shim."
 fi
 
-# 4. Summary & Repacking Guidance
-echo "[4/4] Verification of copied files:"
+# 4. Append required display and sensor properties
+echo "[4/5] Injecting display and auto-brightness properties..."
+PROP_SRC="$SCRIPT_DIR/props/display_brightness.prop"
+TARGET_PROP=""
+if [ -d "$ROM_ROOT/odm" ] && [ -f "$ROM_ROOT/odm/etc/build.prop" ]; then
+    TARGET_PROP="$ROM_ROOT/odm/etc/build.prop"
+elif [ -f "$VENDOR_DIR/build.prop" ]; then
+    TARGET_PROP="$VENDOR_DIR/build.prop"
+elif [ -f "$VENDOR_DIR/etc/build.prop" ]; then
+    TARGET_PROP="$VENDOR_DIR/etc/build.prop"
+fi
+
+if [ -n "$TARGET_PROP" ] && [ -f "$PROP_SRC" ]; then
+    echo "  -> Appending properties to $TARGET_PROP"
+    echo "" >> "$TARGET_PROP"
+    echo "# ColorOS Auto-Brightness & Display Remap Compatibility Properties" >> "$TARGET_PROP"
+    cat "$PROP_SRC" >> "$TARGET_PROP"
+    echo "  -> Properties injected successfully."
+fi
+
+# 5. Summary & Repacking Guidance
+echo "[5/5] Verification of copied files:"
 ls -lh "$TARGET_DDC" "$TARGET_DEF" "$TARGET_COM"
 echo
 echo "============================================================"

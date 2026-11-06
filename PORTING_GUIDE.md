@@ -24,6 +24,31 @@ When unpacking your target ColorOS ROM images, place the files into the followin
 | `displayconfig/display_brightness_config_default.xml` | `system_ext/etc/display_brightness_config_default.xml` | `0644` (rw-r--r--) | `u:object_r:system_file:s0` |
 | `displayconfig/display_brightness_config_common.xml` | `system_ext/etc/display_brightness_config_common.xml` | `0644` (rw-r--r--) | `u:object_r:system_file:s0` |
 
+### C. Inside Unpacked `odm.img` (or `vendor.img`):
+Append the contents of `props/display_brightness.prop` to `/odm/etc/build.prop` (or `/vendor/build.prop`):
+```properties
+# Enable sensor brightness event reporting to ColorOS SensorDelegate
+ro.vendor.oplus.sensor.report_brightness=true
+
+# Enable smooth primary display UI dimming interpolation
+vendor.display.enable_uidimming_primary=1
+vendor.display.uir_support=1
+
+# ColorOS Eye Care and Ambient Lux Adaptation
+ro.oplus.display.smarteyecare.v5=1
+
+# Display Remap Brightness Tolerances and Silky Brightness Interpolation
+ro.vendor.display.RemapBrightness.ToleranceEnable=1
+ro.vendor.display.RemapBrightness.ToleranceNit=500
+ro.vendor.display.RemapBrightness.MinTolerancefac=1
+ro.vendor.display.RemapBrightness.MaxTolerancefac=1.09
+ro.vendor.display.RemapBrightness.MaxRemapSilkybrightness=16379
+
+# MediaTek Silky Brightness HWC acceleration
+persist.vendor.sys.pq.disp.gamma.silky.brightness=1
+persist.vendor.sys.pq.disp_gamma_silky_brightness_by_hwc=1
+```
+
 ---
 
 ## 2. Automated Baking into Unpacked Images
