@@ -291,26 +291,41 @@ static int ensure_scratch(int required) {
     return 0;
 }
 
+static const char *const k_real_candidates[] = {
+    REAL_HAL_PATH,
+    "/vendor/lib64/hw/sensors.mediatek.V2.0.so",
+    "/vendor/lib64/hw/sensors.mt6899.so.orig",
+    "/vendor/lib64/hw/sensors.qcom.so.orig",
+    "/vendor/lib64/hw/sensors.real.so",
+};
+#define REAL_CANDIDATES_LEN (sizeof(k_real_candidates) / sizeof(k_real_candidates[0]))
+
 static int ensure_real(void) {
     if (g_real_module) return 0;
-    g_real_handle = dlopen(REAL_HAL_PATH, RTLD_NOW);
-    if (!g_real_handle) {
-        LOGE("failed to dlopen %s: %s", REAL_HAL_PATH, dlerror());
-        return -1;
+
+    for (size_t i = 0; i < REAL_CANDIDATES_LEN; ++i) {
+        const char *path = k_real_candidates[i];
+        if (!path || access(path, R_OK) != 0) continue;
+
+        g_real_handle = dlopen(path, RTLD_NOW);
+        if (g_real_handle) {
+            const sensors_module_t *mod = (const sensors_module_t *)dlsym(g_real_handle, "HMI");
+            if (mod) {
+                g_real_module = mod;
+                if (mod->common.methods && mod->common.methods->open) {
+                    g_orig_open = mod->common.methods->open;
+                }
+                LOGI("loaded real HAL %s successfully", path);
+                return 0;
+            }
+            LOGW("found %s but dlsym HMI failed: %s", path, dlerror());
+            dlclose(g_real_handle);
+            g_real_handle = NULL;
+        }
     }
-    const sensors_module_t *mod = (const sensors_module_t *)dlsym(g_real_handle, "HMI");
-    if (!mod) {
-        LOGE("dlsym HMI failed from %s: %s", REAL_HAL_PATH, dlerror());
-        dlclose(g_real_handle);
-        g_real_handle = NULL;
-        return -1;
-    }
-    g_real_module = mod;
-    if (mod->common.methods && mod->common.methods->open) {
-        g_orig_open = mod->common.methods->open;
-    }
-    LOGI("loaded real HAL %s successfully", REAL_HAL_PATH);
-    return 0;
+
+    LOGE("failed to locate and dlopen genuine vendor sensor HAL");
+    return -1;
 }
 
 static void build_sensor_list_locked(void) {
