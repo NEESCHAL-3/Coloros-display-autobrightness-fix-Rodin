@@ -1,0 +1,30 @@
+//
+// Android.bp for AOSP / Custom ROM source trees
+//
+
+cc_library_shared {
+    name: "sensors.compat",
+    relative_install_path: "hw",
+    vendor: true,
+
+    srcs: [
+        "src/sensors_compat.c",
+    ],
+
+    shared_libs: [
+        "liblog",
+        "libdl",
+    ],
+
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-fPIC",
+    ],
+
+    header_libs: [
+        "libhardware_headers",
+    ],
+}

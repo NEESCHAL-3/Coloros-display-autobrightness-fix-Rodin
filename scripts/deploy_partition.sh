@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Automated deployment script for on-partition installation.
-# Deploys configurations to target device with strict SELinux labels.
+# Deploys configurations and sensor shim to target device with strict SELinux labels.
 #
 
 set -euo pipefail
@@ -33,13 +33,19 @@ if ! adb shell "su -c 'id'" >/dev/null 2>&1; then
 fi
 
 # Push files to /data/local/tmp staging area
-echo "[1/3] Pushing staging files to device..."
+echo "[1/4] Pushing staging files to device..."
 adb push "$DISPLAY_XML" "/data/local/tmp/$XML_BASENAME"
 adb push "$SCRIPT_DIR/displayconfig/display_brightness_config_default.xml" "/data/local/tmp/display_brightness_config_default.xml"
 adb push "$SCRIPT_DIR/displayconfig/display_brightness_config_common.xml" "/data/local/tmp/display_brightness_config_common.xml"
 
+if [ -f "$SCRIPT_DIR/sensor_shim/prebuilt/sensors.mt6899.so" ]; then
+    adb push "$SCRIPT_DIR/sensor_shim/prebuilt/sensors.mt6899.so" "/data/local/tmp/sensors.compat.so"
+elif [ -f "$SCRIPT_DIR/sensor_shim/build/sensors.mt6899.so" ]; then
+    adb push "$SCRIPT_DIR/sensor_shim/build/sensors.mt6899.so" "/data/local/tmp/sensors.compat.so"
+fi
+
 # Remount partitions and apply files
-echo "[2/3] Applying files to partitions and restoring SELinux contexts..."
+echo "[2/4] Applying files to partitions and restoring SELinux contexts..."
 adb shell "su -c '
 set -e
 mount -o remount,rw /vendor
@@ -67,10 +73,29 @@ chown root:root /system_ext/etc/display_brightness_config_common.xml
 chcon u:object_r:system_file:s0 /system_ext/etc/display_brightness_config_common.xml
 rm -f /data/local/tmp/display_brightness_config_common.xml
 
+# Install sensor shim if present
+if [ -f /data/local/tmp/sensors.compat.so ]; then
+    # Backup original HAL if not already backed up
+    if [ ! -f /vendor/lib64/hw/sensors.mediatek.V2.0.so.orig ] && [ -f /vendor/lib64/hw/sensors.mediatek.V2.0.so ]; then
+        cp /vendor/lib64/hw/sensors.mediatek.V2.0.so /vendor/lib64/hw/sensors.mediatek.V2.0.so.orig
+    fi
+    cp /data/local/tmp/sensors.compat.so /vendor/lib64/hw/sensors.mt6899.so
+    chmod 0644 /vendor/lib64/hw/sensors.mt6899.so
+    chown root:root /vendor/lib64/hw/sensors.mt6899.so
+    chcon u:object_r:vendor_file:s0 /vendor/lib64/hw/sensors.mt6899.so
+    rm -f /data/local/tmp/sensors.compat.so
+fi
+
 sync
 echo DEPLOYMENT_APPLIED_SUCCESSFULLY
 '"
 
-echo "[3/3] Done. To reload system_server display spline tables, reboot the device:"
+echo "[3/4] Restarting sensor multihal and display services..."
+adb shell "su -c '
+pkill -f android.hardware.sensors-service.multihal || true
+pkill -f displaypanelfeature-service || true
+'"
+
+echo "[4/4] Done. To reload system_server display spline tables, reboot the device:"
 echo "  adb reboot"
 echo "============================================================"
