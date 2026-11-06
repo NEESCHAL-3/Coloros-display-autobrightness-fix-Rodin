@@ -1,12 +1,7 @@
-# Build artifacts
-build/
-bin/
-*.o
-*.so
-!sensor_shim/prebuilt/*.so
-
 # Temporary files
 *.swp
 *.bak
 *~
 .DS_Store
+*.tmp
+out/
