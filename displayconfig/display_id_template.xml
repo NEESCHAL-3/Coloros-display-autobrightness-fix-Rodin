@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Android DisplayDeviceConfig Template for ColorOS Ports
+    Target Location: /vendor/etc/displayconfig/display_id_<PHYSICAL_DISPLAY_ID>.xml
+    
+    Replace <PHYSICAL_DISPLAY_ID> with the 64-bit physical ID obtained via:
+        adb shell dumpsys display | grep -E "DisplayDeviceInfo|mPhysicalDisplayId"
+-->
+<displayConfiguration>
+    <!--
+        Brightness-to-Nits spline mapping.
+        Maps normalized brightness [0.0000 - 1.0000] to physical nits output.
+        Ensure 0.0000 matches your panel's minimum stable nit level (typically 2.00 nits on OLED).
+    -->
+    <screenBrightnessMap>
+        <point>
+            <value>0.0000</value>
+            <nits>2.00</nits>
+        </point>
+        <point>
+            <value>0.0150</value>
+            <nits>2.05</nits>
+        </point>
+        <point>
+            <value>0.0200</value>
+            <nits>2.50</nits>
+        </point>
+        <point>
+            <value>0.0260</value>
+            <nits>3.00</nits>
+        </point>
+        <point>
+            <value>0.0380</value>
+            <nits>5.77</nits>
+        </point>
+        <point>
+            <value>0.0650</value>
+            <nits>11.50</nits>
+        </point>
+        <point>
+            <value>0.1050</value>
+            <nits>21.40</nits>
+        </point>
+        <point>
+            <value>0.1800</value>
+            <nits>51.69</nits>
+        </point>
+        <point>
+            <value>0.2800</value>
+            <nits>99.94</nits>
+        </point>
+        <point>
+            <value>0.4200</value>
+            <nits>166.94</nits>
+        </point>
+        <point>
+            <value>0.6000</value>
+            <nits>249.03</nits>
+        </point>
+        <point>
+            <value>0.7800</value>
+            <nits>347.82</nits>
+        </point>
+        <point>
+            <value>1.0000</value>
+            <nits>486.18</nits>
+        </point>
+    </screenBrightnessMap>
+
+    <!--
+        Auto-Brightness Sensor Configuration:
+        - brighteningLightDebounceMillis: Delay before brightening upon lux increase (default: 400ms)
+        - darkeningLightDebounceMillis: Delay before dimming upon lux decrease (default: 300ms)
+        Stock ColorOS fallback defaults to an unusable 8000ms (8 seconds) if this section is missing.
+    -->
+    <autoBrightness enabled="true">
+        <brighteningLightDebounceMillis>400</brighteningLightDebounceMillis>
+        <darkeningLightDebounceMillis>300</darkeningLightDebounceMillis>
+    </autoBrightness>
+
+    <!--
+        Transition Ramp Rates:
+        Controls the rate at which brightness interpolates between target states.
+        1.00 provides responsive, smooth adjustments without stepping artifacts.
+    -->
+    <screenBrightnessRampFastDecrease>1.00</screenBrightnessRampFastDecrease>
+    <screenBrightnessRampFastIncrease>1.00</screenBrightnessRampFastIncrease>
+    <screenBrightnessRampSlowDecrease>1.00</screenBrightnessRampSlowDecrease>
+    <screenBrightnessRampSlowIncrease>1.00</screenBrightnessRampSlowIncrease>
+    <screenBrightnessRampDecreaseMaxMillis>1200</screenBrightnessRampDecreaseMaxMillis>
+    <screenBrightnessRampIncreaseMaxMillis>1200</screenBrightnessRampIncreaseMaxMillis>
+</displayConfiguration>
