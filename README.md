@@ -6,22 +6,34 @@ Designed specifically for ROM porters working with **unpacked partition images**
 
 ---
 
+## Companion Sensor Repository
+
+> [!IMPORTANT]
+> **Sensor HAL Separation**: On the POCO X7 Pro (`rodin`), raw front ambient light sensor events (`als_raw` type 33171111) are bridged into `android.sensor.light` (handle 5) and filtered for under-display OLED optical leakage by the unified sensor HAL (`sensors.mt6899.so`).
+> 
+> To prevent binary overwrite conflicts on `/vendor/lib64/hw/sensors.mt6899.so`, the sensor HAL is maintained in the dedicated repository:
+> - **[NEESCHAL-3/NEESS-COS-AOD-FOD-FIX](https://github.com/NEESCHAL-3/NEESS-COS-AOD-FOD-FIX)**
+>
+> Pair this display framework with `NEESS-COS-AOD-FOD-FIX` for full end-to-end auto-brightness, AOD, and in-display fingerprint functionality.
+
+---
+
 ## The Problems on ColorOS Ports
 
-When ColorOS is ported from stock OPPO/OnePlus hardware to third-party devices (such as POCO, Xiaomi, Realme, or Vivo), auto-brightness fails due to three distinct hardware/framework incompatibilities:
+When ColorOS is ported from stock OPPO/OnePlus hardware to third-party devices (such as POCO, Xiaomi, Realme, or Vivo), display brightness fails due to three distinct framework incompatibilities:
 
 1. **64-bit Display Hardware ID Mismatch**: Android 15 `DisplayDeviceConfig` fails to match the panel, falling back to an 8-second darkening debounce and 0.23 ramp speed.
-2. **Under-Display Optical Leakage**: OLED pixel emissions bleed directly into the under-display ambient light sensor photodiode, triggering a runaway positive feedback loop where the screen drives itself to maximum brightness.
-3. **Hardcoded Minimum Brightness Floor (222 vs 1)**: Stock ColorOS enforces a floor clamp at level 222 (~100 nits), preventing the screen from dimming down to true 2.0 nits at night.
+2. **Hardcoded Minimum Brightness Floor (222 vs 1)**: Stock ColorOS enforces a floor clamp at level 222 (~100 nits), preventing the screen from dimming down to true 2.0 nits at night.
+3. **Missing Display Remap Properties**: ColorOS UI dimming and remap interpolation are disabled by default on foreign vendor trees.
 
 ---
 
 ## Solution Components
 
-* **Sensor HAL Shim (`sensors.compat.so`)**: Intercepts raw ALS events, reads the real-time panel backlight level from sysfs, applies polynomial display leakage subtraction, and injects calibrated `SENSOR_TYPE_LIGHT` events.
 * **DisplayDeviceConfig XML (`display_id_<ID>.xml`)**: Implements responsive 400ms/300ms debouncing, 1.00 ramp rates, and OLED nit spline mappings.
 * **ColorOS Brightness Splines (`display_brightness_config_*.xml`)**: Adjusts the level table floor from 222 to 1, unlocking true 2.0-nit night mode.
-* **Image Baking & Deployment Tooling**: Automated script to copy files directly into unpacked partition directories, live root ADB installer, and standalone NDK build system.
+* **Display Properties (`display_brightness.prop`)**: Configures display remap tolerances, UI dimming interpolation, and MediaTek silky brightness.
+* **Image Baking & Deployment Tooling**: Automated script to copy files directly into unpacked partition directories, physical display ID query tool, and live root ADB installer.
 
 ---
 
@@ -34,12 +46,6 @@ coloros-display-autobrightness-fix/
 │   ├── display_id_template.xml                # Parameterized template for other displays
 │   ├── display_brightness_config_default.xml  # Patched 1-8191 level table (floor min=1)
 │   └── display_brightness_config_common.xml   # Lux-to-nits mapping tables
-├── sensor_shim/
-│   ├── Android.bp                             # AOSP / ROM tree build definition
-│   ├── CMakeLists.txt                         # CMake build definition
-│   ├── build.sh                               # Standalone NDK compiler script
-│   └── src/
-│       └── sensors_compat.c                   # C source for ALS interception & leakage subtraction
 ├── props/
 │   └── display_brightness.prop                # Essential display remap & sensor report properties
 ├── scripts/
@@ -48,8 +54,8 @@ coloros-display-autobrightness-fix/
 │   ├── test_ambient_lux.sh                    # Live monitoring of backlight and lux
 │   └── deploy_partition.sh                    # Direct on-partition deployment via ADB
 ├── sepolicy/
-│   └── README_SEPOLICY.md                     # SELinux contexts and CIL rules for Enforcing mode
-├── ARCHITECTURE.md                            # Detailed technical design & algorithm breakdown
+│   └── README_SEPOLICY.md                     # SELinux contexts for Enforcing mode
+├── ARCHITECTURE.md                            # Detailed technical design & spline analysis
 ├── PORTING_GUIDE.md                           # Step-by-step guide for unpacked partition images
 └── LICENSE                                    # Apache 2.0 License
 ```
@@ -64,9 +70,6 @@ ColorOS ports are typically prepared by unpacking `.img` partition files. Place 
 * **Display Config**: `vendor/etc/displayconfig/display_id_<PHYSICAL_ID>.xml`
   * Permissions: `0644`
   * SELinux context: `u:object_r:vendor_configs_file:s0`
-* **Sensor Shim**: `vendor/lib64/hw/sensors.<platform>.so`
-  * Permissions: `0644`
-  * SELinux context: `u:object_r:vendor_file:s0`
 
 ### 2. In Unpacked `system_ext.img`:
 * **Default Table**: `system_ext/etc/display_brightness_config_default.xml`
@@ -76,11 +79,11 @@ ColorOS ports are typically prepared by unpacking `.img` partition files. Place 
   * Permissions: `0644`
   * SELinux context: `u:object_r:system_file:s0`
 
+### 3. In Unpacked `odm.img` (or `vendor.img`):
+* Append `props/display_brightness.prop` to `/odm/etc/build.prop`.
+
 ### Automated Baking:
 ```bash
-# Compile the sensor shim
-cd sensor_shim && ./build.sh && cd ..
-
 # Bake directly into unpacked ROM workspace
 ./scripts/bake_unpacked_images.sh /path/to/unpacked_rom [PHYSICAL_DISPLAY_ID]
 ```
@@ -107,7 +110,7 @@ cd sensor_shim && ./build.sh && cd ..
 
 ## Documentation
 
-* Refer to [ARCHITECTURE.md](ARCHITECTURE.md) for mathematical derivations, leakage compensation equations, and framework spline analysis.
+* Refer to [ARCHITECTURE.md](ARCHITECTURE.md) for framework spline analysis, debounce mechanics, and nit curves.
 * Refer to [PORTING_GUIDE.md](PORTING_GUIDE.md) for full instructions on unpacking, repacking, and customizing for other devices.
 * Refer to [sepolicy/README_SEPOLICY.md](sepolicy/README_SEPOLICY.md) for SELinux Enforcing compliance.
 
