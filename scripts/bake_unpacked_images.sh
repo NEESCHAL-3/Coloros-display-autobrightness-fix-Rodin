@@ -88,7 +88,9 @@ mkdir -p "$TARGET_HW_DIR"
 
 # Find prebuilt or newly compiled shim
 SHIM_SRC=""
-if [ -f "$SCRIPT_DIR/sensor_shim/build/sensors.mt6899.so" ]; then
+if [ -f "$SCRIPT_DIR/sensor_shim/prebuilt/sensors.mt6899.so" ]; then
+    SHIM_SRC="$SCRIPT_DIR/sensor_shim/prebuilt/sensors.mt6899.so"
+elif [ -f "$SCRIPT_DIR/sensor_shim/build/sensors.mt6899.so" ]; then
     SHIM_SRC="$SCRIPT_DIR/sensor_shim/build/sensors.mt6899.so"
 fi
 

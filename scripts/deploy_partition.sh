@@ -38,7 +38,9 @@ adb push "$DISPLAY_XML" "/data/local/tmp/$XML_BASENAME"
 adb push "$SCRIPT_DIR/displayconfig/display_brightness_config_default.xml" "/data/local/tmp/display_brightness_config_default.xml"
 adb push "$SCRIPT_DIR/displayconfig/display_brightness_config_common.xml" "/data/local/tmp/display_brightness_config_common.xml"
 
-if [ -f "$SCRIPT_DIR/sensor_shim/build/sensors.mt6899.so" ]; then
+if [ -f "$SCRIPT_DIR/sensor_shim/prebuilt/sensors.mt6899.so" ]; then
+    adb push "$SCRIPT_DIR/sensor_shim/prebuilt/sensors.mt6899.so" "/data/local/tmp/sensors.compat.so"
+elif [ -f "$SCRIPT_DIR/sensor_shim/build/sensors.mt6899.so" ]; then
     adb push "$SCRIPT_DIR/sensor_shim/build/sensors.mt6899.so" "/data/local/tmp/sensors.compat.so"
 fi
 
