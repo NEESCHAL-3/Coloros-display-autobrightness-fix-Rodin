@@ -1,0 +1,11 @@
+# Build artifacts
+build/
+bin/
+*.o
+*.so
+
+# Temporary files
+*.swp
+*.bak
+*~
+.DS_Store
